@@ -148,26 +148,28 @@ private
     root = Pathname.new(dir)
     ignore = (options[:ignore] || []) + [".anvil", ".git"]
 
-    if File.exists?("#{dir}/.slugignore")
-      File.read("#{dir}/.slugignore").split("\n").each do |match|
-        Dir["#{dir}/**/#{match}"].each do |ignored_file|
-          ignore.push Pathname.new(ignored_file).relative_path_from(root).to_s
+    ["#{dir}/.slugignore", "#{dir}/.gitignore"].each do |ignore_file|
+        if File.exists?(ignore_file)
+          File.read(ignore_file).split("\n").each do |match|
+            Dir["#{dir}/**/#{match}"].each do |ignored_file|
+              ignore.push Pathname.new(ignored_file).relative_path_from(root).to_s
+            end
+          end
         end
-      end
     end
 
     manifest = {}
     Find.find(dir) do |path|
       relative = Pathname.new(path).relative_path_from(root).to_s
       if File.directory?(path)
-        Find.prune if ignore.include?(relative) || ignore.include?(relative + "/")
+        Find.prune if ignore.include?(relative) || ignore.include?(relative + "/") || ignore.include?(relative + "\\")
         next
       end
       next if ignore.include?(relative)
       next if %w( . .. ).include?(File.basename(path))
       next if File.pipe?(path)
       next if path =~ /\.swp$/
-      next unless path =~ /^[A-Za-z0-9\-\_\.\/]*$/
+      next unless path =~ /^[A-Za-z0-9\-\_\.\/\\:]*$/
       manifest[relative] = file_manifest(path)
     end
     manifest
